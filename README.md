@@ -18,14 +18,6 @@ Backend: Python, FastAPI (two separate services — see Architecture below), Mot
 Database: MongoDB Atlas (cloud)
 AI Model: Groq-hosted `llama-3.3-70b-versatile`
 ---
-1. Frontend uploads a resume      → POST http://localhost:8000/upload-resume
-2. app/ extracts text, calls Groq → returns parsed_resume JSON (not saved yet)
-3. Frontend sends JD + parsed_resume → POST http://localhost:8001/screenings/analyze
-4. database_api calls Groq (via app/'s service) to match resume against JD
-5. Result is saved to MongoDB, scoped to the logged-in user
-6. Frontend displays the verdict, score, and full reasoning
-
----
 Prerequisites
 Before you begin, make sure you have:
 Python 3.11+ installed
