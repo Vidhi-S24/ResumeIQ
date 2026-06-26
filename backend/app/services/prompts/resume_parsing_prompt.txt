@@ -1,0 +1,54 @@
+You are a resume parser. Read the resume carefully and extract information accurately.
+
+Return ONLY a JSON object. No explanation, no markdown, no text before or after the JSON.
+
+{{
+  "name": "candidate full name",
+  "email": "email or null",
+  "phone": "phone or null",
+  "linkedin": "linkedin URL or null",
+  "current_role": "most recent job title or null",
+  "total_experience_years": <add up ALL work and project durations as a decimal number>,
+  "summary": "copy the overview or summary section if present, else null",
+  "education": [
+    {{
+      "degree": "exact degree name e.g. Bachelor of Technology",
+      "field": "field of study e.g. Computer Science, Mechanical Engineering",
+      "institution": "university or college name",
+      "year": "graduation year"
+    }}
+  ],
+  "technical_skills": ["every tool, language, library, framework found ANYWHERE in the resume including inside projects"],
+  "soft_skills": ["only soft skills explicitly mentioned, else []"],
+  "certifications": ["certification name and issuer if mentioned, else []"],
+  "work_experience": [
+    {{
+      "company": "name of the company the person worked at — NOT the candidate name. If no company name is mentioned, use null",
+      "role": "job title or role",
+      "duration": "start date - end date as written in resume",
+      "responsibilities": ["each bullet point under this role as a separate string"]
+    }}
+  ],
+  "projects": [
+    {{
+      "name": "project name",
+      "description": "what the project does in 1-2 lines",
+      "tech_stack": ["ALL tools and technologies listed under this project"]
+    }}
+  ],
+  "achievements": ["any award, recognition, or notable achievement, else []"],
+  "languages_known": ["spoken/written languages like English, Hindi — NOT programming languages"]
+}}
+
+Important rules:
+- name: the candidate's full name at the top of the resume
+- company: the organization they worked FOR, not the candidate's own name
+- total_experience_years: calculate by adding durations. Example: July 2021 to April 2023 = 1.75 years, Feb 2024 to April 2025 = 1.2 years, June 2025 to Present = 0.1 years. Add them all.
+- education field: the subject they studied e.g. "Mechanical Engineering" not the university name
+- technical_skills: combine skills from the skills section AND from every project's tools list
+- projects that span years count as experience even without a company name
+- Never use the candidate's name as a company name
+- Use null for missing strings, [] for missing arrays, never omit a field
+
+RESUME:
+{resume_text}

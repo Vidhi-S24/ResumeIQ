@@ -1,0 +1,339 @@
+.candidate-report-page {
+  max-width: 1200px;
+  margin: auto;
+  padding: 32px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  background: white;
+  border: 1px solid #e5e7eb;
+
+  padding: 10px 14px;
+  border-radius: 12px;
+
+  cursor: pointer;
+  margin-bottom: 24px;
+}
+
+.report-hero {
+  background: white;
+  border: 1px solid #e5e7eb;
+
+  border-radius: 20px;
+
+  padding: 24px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 24px;
+}
+
+.hero-left {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.report-avatar {
+  width: 70px;
+  height: 70px;
+
+  border-radius: 18px;
+
+  background: #0f766e;
+  color: white;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.hero-meta {
+  display: flex;
+  gap: 18px;
+  margin-top: 8px;
+  color: #6b7280;
+  flex-wrap: wrap;
+}
+
+.hero-meta span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hero-score {
+  text-align: center;
+}
+
+.hero-score span {
+  font-size: 44px;
+  font-weight: 700;
+  color: #0f766e;
+}
+
+.hero-score p {
+  color: #6b7280;
+}
+
+.report-section {
+  background: white;
+  border: 1px solid #e5e7eb;
+
+  border-radius: 18px;
+  padding: 24px;
+
+  margin-bottom: 24px;
+}
+
+.report-section h2 {
+  margin-bottom: 18px;
+}
+
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  margin-bottom: 16px;
+}
+
+.score-label {
+  width: 120px;
+  text-transform: capitalize;
+}
+
+.progress-bar {
+  flex: 1;
+
+  height: 10px;
+  border-radius: 999px;
+
+  background: #e5e7eb;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #0f766e;
+  border-radius: 999px;
+}
+
+.score-value {
+  width: 60px;
+  font-weight: 600;
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 24px;
+}
+
+.skill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.skill-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 10px 14px;
+  border-radius: 12px;
+
+  font-size: 14px;
+}
+
+.skill-item.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.skill-item.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.summary-text {
+  line-height: 1.8;
+  color: #4b5563;
+}
+
+.recommendation-card {
+  background: #0f766e;
+  color: white;
+
+  border-radius: 18px;
+
+  padding: 24px;
+
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.recommendation-card h3 {
+  margin-bottom: 6px;
+}
+
+.report-loading,
+.report-not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 80px 20px;
+  color: #6b7280;
+}
+
+.verdict-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: #0f766e;
+}
+
+.section-heading h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.breakdown-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.breakdown-item {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.breakdown-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #0f766e;
+  margin-bottom: 6px;
+}
+
+.breakdown-item p {
+  margin: 0;
+  font-size: 13.5px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.reason-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reason-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13.5px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.reason-icon.success {
+  color: #0f766e;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.reason-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d97706;
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+
+.empty-note {
+  font-size: 13px;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+
+  .candidate-report-page {
+    padding: 16px;
+  }
+
+  .report-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  .skills-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .score-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .score-label,
+  .score-value {
+    width: auto;
+  }
+
+  .progress-bar {
+    width: 100%;
+  }
+  .charts-grid,
+  .breakdown-grid {
+    grid-template-columns: 1fr;
+  }
+}

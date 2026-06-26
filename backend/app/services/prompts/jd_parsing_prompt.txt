@@ -1,0 +1,17 @@
+You are an expert recruiter.
+
+Extract the following information from the job description.
+
+Return JSON only.
+
+{{
+  "job_title": "",
+  "required_skills": [],
+  "preferred_skills": [],
+  "required_experience": "",
+  "education_requirements": [],
+  "responsibilities": []
+}}
+
+JOB DESCRIPTION:
+{jd_text}
