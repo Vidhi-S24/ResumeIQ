@@ -29,6 +29,7 @@ export default function CandidatesPage() {
   const [search, setSearch] = useState('');
   const [candidates, setCandidates] = useState<Screening[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
@@ -42,18 +43,18 @@ export default function CandidatesPage() {
   });
 
   const avatarColors = [
-    '#16b1a4', 
-    '#8299ca', 
-    '#7C3AED', 
-    '#c75387', 
-    '#db7741', 
-    '#32aa84', 
-    '#47acc5', 
-    '#9491c9', 
-    '#a7c77a', 
-    '#b894da', 
-    '#cf6940', 
-    '#af5b7e', 
+    '#16b1a4',
+    '#8299ca',
+    '#7C3AED',
+    '#c75387',
+    '#db7741',
+    '#32aa84',
+    '#47acc5',
+    '#9491c9',
+    '#a7c77a',
+    '#b894da',
+    '#cf6940',
+    '#af5b7e',
   ];
 
   const getAvatarColor = (text: string) => {
@@ -69,9 +70,9 @@ export default function CandidatesPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(searchInput);
-    }, 400);
+    }, 2000);
 
-    return () => clearTimeout(timer);  
+    return () => clearTimeout(timer);
   }, [searchInput]);
 
   useEffect(() => {
@@ -81,11 +82,12 @@ export default function CandidatesPage() {
       try {
         const data = await getAllScreenings(currentPage, CANDIDATES_PER_PAGE, undefined, search);
         setCandidates(data.screenings);
-        setTotalCount(data.total);   
+        setTotalCount(data.total);
       } catch {
         setError('Failed to load candidates. Please try again.');
       } finally {
         setIsLoading(false);
+        setIsInitialLoading(false);
       }
     };
     fetchScreenings();
@@ -139,7 +141,7 @@ export default function CandidatesPage() {
   const formatDate = (isoString: string) =>
     new Date(isoString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <div className="candidates-page">
         <div className="flex items-center justify-center" style={{ padding: '4rem' }}>
@@ -181,63 +183,73 @@ export default function CandidatesPage() {
         />
       </div>
 
-      <div className="candidate-list">
-        {candidates.map((candidate, index) => (
-          <motion.div
-            key={candidate.id}
-            className="candidate-card"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.03 }}
-          >
-            <div className="candidate-header-row">
-              <div className="candidate-info">
-                <div
-                  className="candidate-avatar"
-                  style={{
-                    backgroundColor: getAvatarColor(candidate.candidate_name),
-                  }}
-                >
-                  {candidate.candidate_name
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')}
+      {isLoading ? (
+        <div className="flex items-center justify-center" style={{ padding: '2rem' }}>
+          <Loader2 className="animate-spin" size={20} />
+          <span style={{ marginLeft: '0.5rem' }}>Searching...</span>
+        </div>
+      ) : error ? (
+        <p style={{ color: '#ef4444', padding: '1rem' }}>{error}</p>
+      ) : (
+
+        <div className="candidate-list">
+          {candidates.map((candidate, index) => (
+            <motion.div
+              key={candidate.id}
+              className="candidate-card"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.03 }}
+            >
+              <div className="candidate-header-row">
+                <div className="candidate-info">
+                  <div
+                    className="candidate-avatar"
+                    style={{
+                      backgroundColor: getAvatarColor(candidate.candidate_name),
+                    }}
+                  >
+                    {candidate.candidate_name
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')}
+                  </div>
+                  <h3>{candidate.candidate_name}</h3>
                 </div>
-                <h3>{candidate.candidate_name}</h3>
+
+                <div className="candidate-actions-top">
+                  <div className="candidate-score">{candidate.overall_score}%</div>
+                  <button
+                    className="delete-btn"
+                    onClick={() => {
+                      setCandidateToDelete(candidate.id);
+                      setShowDeleteModal(true);
+                    }}
+                    title="Delete candidate"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
 
-              <div className="candidate-actions-top">
-                <div className="candidate-score">{candidate.overall_score}%</div>
-                <button
-                  className="delete-btn"
-                  onClick={() => {
-                    setCandidateToDelete(candidate.id);
-                    setShowDeleteModal(true);
-                  }}
-                  title="Delete candidate"
-                >
-                  <Trash2 size={16} />
-                </button>
+              <div className="candidate-meta-row">
+                <p className="candidate-role">{candidate.job_description?.job_title || 'No title specified'}</p>
+                <p className="candidate-screened">Screened: {formatDate(candidate.created_at)}</p>
               </div>
-            </div>
+              <div className="verdict-report">
+                <div className="candidate-verdict">
+                  <span className={`candidate-status ${getStatusClass(candidate.verdict)}`}>
+                    {formatVerdict(candidate.verdict)}
+                  </span>
+                </div>
 
-            <div className="candidate-meta-row">
-              <p className="candidate-role">{candidate.job_description?.job_title || 'No title specified'}</p>
-              <p className="candidate-screened">Screened: {formatDate(candidate.created_at)}</p>
-            </div>
-            <div className="verdict-report">
-              <div className="candidate-verdict">
-                <span className={`candidate-status ${getStatusClass(candidate.verdict)}`}>
-                  {formatVerdict(candidate.verdict)}
-                </span>
-              </div>
-
-              <button className="view-report-btn" onClick={() => navigate(`/candidate/${candidate.id}`)}>
-                View Report
-              </button></div>
-          </motion.div>
-        ))}
-      </div>
+                <button className="view-report-btn" onClick={() => navigate(`/candidate/${candidate.id}`)}>
+                  View Report
+                </button></div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {totalPages > 1 && (
         <div className="pagination">

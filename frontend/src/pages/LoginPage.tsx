@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, BrainCircuit, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth, UserRole } from '../context/AuthContext';
@@ -14,6 +14,8 @@ const roles: { value: UserRole; label: string }[] = [
 export default function LoginPage() {
   const { login, signup, loading, error, clearError } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from=(location.state as {from?:Location})?.from?.pathname||'/dashboard';
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
@@ -53,7 +55,7 @@ export default function LoginPage() {
     const ok = await login(email, password);
     if (ok) {
       setSuccess(true);
-      setTimeout(() => navigate('/dashboard'), 600);
+      setTimeout(() => navigate(from, { replace: true }), 600);
     }
   };
 
@@ -74,7 +76,7 @@ export default function LoginPage() {
     const ok = await signup({ name, email, password, role, company_name: companyName });
     if (ok) {
       setSuccess(true);
-      setTimeout(() => navigate('/dashboard'), 600);
+      setTimeout(() => navigate(from, { replace: true }), 600);
     }
   };
 
