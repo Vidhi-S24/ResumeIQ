@@ -49,3 +49,19 @@ class ScreeningResponse(BaseModel):
     ai_recommendation: str
     screened_by: str
     created_at: datetime
+
+class BulkAnalyzeRequest(BaseModel):
+    jd_text: str
+    job_title: Optional[str] = None
+    parsed_resumes: list[dict]   # list of parsed_resume objects from bulk upload
+
+
+class RankedScreeningResult(BaseModel):
+    rank: int
+    id: str
+    candidate_name: str
+    verdict: str
+    overall_score: int
+    matched_skills: list[str]
+    missing_skills: list[str]
+    ai_recommendation: str

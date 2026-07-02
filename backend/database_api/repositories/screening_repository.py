@@ -13,7 +13,8 @@ async def get_screenings(
     skip: int = 0,
     limit: int = 10,
     verdict: str = None,
-    search: str = None
+    search: str = None,
+    sort_by: str = "created_at",
 ) -> list:
     """List screenings belonging to the logged-in user, optionally filtered by search text."""
     query = {"screened_by": screened_by}
@@ -26,9 +27,53 @@ async def get_screenings(
             {"candidate_name": {"$regex": search, "$options": "i"}},
             {"job_description.job_title": {"$regex": search, "$options": "i"}},
         ]
+    # Default (Newest First)
+    if sort_by == "created_at":
+        cursor = (
+            candidate_screenings_collection.find(query)
+            .sort("created_at", -1)
+            .skip(skip)
+            .limit(limit)
+        )
 
-    cursor = candidate_screenings_collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+        return [doc async for doc in cursor]
+
+    # Highest Score
+    elif sort_by == "score":
+        cursor = (
+            candidate_screenings_collection.find(query)
+            .sort("overall_score", -1)
+            .skip(skip)
+            .limit(limit)
+        )
+
+        return [doc async for doc in cursor]
+
+    # Most Matched Skills
+    elif sort_by == "matched_skills":
+        docs = [
+            doc
+            async for doc in candidate_screenings_collection.find(query)
+        ]
+
+        docs.sort(
+            key=lambda x: len(x.get("matched_skills", [])),
+            reverse=True,
+        )
+
+        return docs[skip: skip + limit]
+
+    # Fallback
+    cursor = (
+        candidate_screenings_collection.find(query)
+        .sort("created_at", -1)
+        .skip(skip)
+        .limit(limit)
+    )
+
     return [doc async for doc in cursor]
+    # cursor = candidate_screenings_collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+    # return [doc async for doc in cursor]
 
 
 async def count_screenings(screened_by: str, verdict: str = None, search: str = None) -> int:

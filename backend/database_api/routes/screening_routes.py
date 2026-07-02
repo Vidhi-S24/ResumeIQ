@@ -3,7 +3,7 @@ from database_api.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from bson.errors import InvalidId
 import asyncio
 
-from database_api.schemas.screening_schema import AnalyzeResumeRequest
+from database_api.schemas.screening_schema import AnalyzeResumeRequest, BulkAnalyzeRequest
 from database_api.services.screening_service import build_and_save_screening, _serialize_screening
 from database_api.repositories.screening_repository import (
     get_screenings, count_screenings, get_screening_by_id, delete_screening,
@@ -13,7 +13,6 @@ from database_api.dependencies.auth_dependency import get_current_user
 from app.services.groq_client_service import match_resume_with_jd
 
 router = APIRouter(prefix="/screenings", tags=["Screenings"])
-
 
 @router.post("/analyze")
 async def analyze_and_save(
@@ -47,6 +46,7 @@ async def list_screenings(
     limit: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
     verdict: str = Query(None),
     search: str = Query(None),   
+    sortBy: str = Query("created_at"),
     current_user=Depends(get_current_user)
 ):
     """List ONLY the screenings created by the logged-in user."""
@@ -54,7 +54,7 @@ async def list_screenings(
     skip = (page - 1) * limit
 
     docs = await get_screenings(
-        screened_by=screened_by, skip=skip, limit=limit, verdict=verdict, search=search  
+        screened_by=screened_by, skip=skip, limit=limit, verdict=verdict, search=search, sort_by=sortBy,  
     )
     total = await count_screenings(screened_by=screened_by, verdict=verdict, search=search)  
 
@@ -130,3 +130,84 @@ async def remove_screening(screening_id: str, current_user=Depends(get_current_u
         raise HTTPException(status_code=404, detail="Screening not found.")
 
     return {"message": "Screening deleted."}
+
+BULK_MATCH_CONCURRENCY = 3
+match_semaphore = asyncio.Semaphore(BULK_MATCH_CONCURRENCY)
+
+
+async def _match_and_save_one(parsed_resume: dict, jd_text: str, job_title: str, screened_by: str) -> dict:
+    """Match one resume against the JD, save it, return a summary for ranking."""
+    async with match_semaphore:
+        try:
+            loop = asyncio.get_event_loop()
+            match_result = await loop.run_in_executor(
+                None, match_resume_with_jd, parsed_resume, jd_text
+            )
+
+            if "error" in match_result:
+                return {
+                    "candidate_name": parsed_resume.get("name", "Unknown"),
+                    "status": "failed",
+                    "error": match_result["error"]
+                }
+
+            saved = await build_and_save_screening(
+                jd_text=jd_text,
+                parsed_resume=parsed_resume,
+                match_result=match_result,
+                screened_by=screened_by,
+                job_title=job_title
+            )
+
+            return {
+                "status": "success",
+                "id": saved["id"],
+                "candidate_name": saved["candidate_name"],
+                "verdict": saved["verdict"],
+                "overall_score": saved["overall_score"],
+                "matched_skills": saved["matched_skills"],
+                "missing_skills": saved["missing_skills"],
+                "ai_recommendation": saved["ai_recommendation"],
+            }
+
+        except Exception as e:
+            return {
+                "candidate_name": parsed_resume.get("name", "Unknown"),
+                "status": "failed",
+                "error": str(e)
+            }
+
+
+@router.post("/analyze-bulk")
+async def analyze_bulk(
+    payload: BulkAnalyzeRequest,
+    current_user=Depends(get_current_user)
+):
+    """Match multiple resumes against ONE job description, save all results,
+    and return them ranked by overall_score — highest first."""
+
+    if len(payload.parsed_resumes) == 0:
+        raise HTTPException(status_code=422, detail="No resumes provided.")
+
+    screened_by = str(current_user["_id"])
+
+    results = await asyncio.gather(*[
+        _match_and_save_one(resume, payload.jd_text, payload.job_title, screened_by)
+        for resume in payload.parsed_resumes
+    ])
+
+    successful = [r for r in results if r["status"] == "success"]
+    failed = [r for r in results if r["status"] == "failed"]
+
+    ranked = sorted(successful, key=lambda r: r["overall_score"], reverse=True)
+
+    for i, result in enumerate(ranked):
+        result["rank"] = i + 1
+
+    return {
+        "total_submitted": len(payload.parsed_resumes),
+        "success_count": len(successful),
+        "failed_count": len(failed),
+        "ranked_results": ranked,
+        "failed_results": failed,
+    }

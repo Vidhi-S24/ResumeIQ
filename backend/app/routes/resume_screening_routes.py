@@ -102,3 +102,67 @@ async def analyze_resume(payload: dict):
         )
 
     return result
+
+BULK_CONCURRENCY_LIMIT = 3
+
+semaphore = asyncio.Semaphore(BULK_CONCURRENCY_LIMIT)
+
+
+async def _process_single_resume(file: UploadFile) -> dict:
+    """Process one resume file: save, extract text, parse with LLM.
+    Wrapped with the semaphore so only a few run at once."""
+    async with semaphore:
+        filepath = os.path.join(UPLOAD_DIR, file.filename)
+
+        try:
+            contents = await file.read()
+            with open(filepath, "wb") as buffer:
+                buffer.write(contents)
+        except Exception as e:
+            return {"filename": file.filename, "status": "failed", "error": f"File save failed: {str(e)}"}
+
+        try:
+            if file.filename.lower().endswith(".pdf"):
+                text = extract_pdf_text(filepath)
+            else:
+                text = extract_docx_text(filepath)
+        except Exception as e:
+            return {"filename": file.filename, "status": "failed", "error": f"Text extraction failed: {str(e)}"}
+
+        if not text or not text.strip():
+            return {"filename": file.filename, "status": "failed", "error": "Could not extract text. File may be scanned/image-based."}
+
+        try:
+            loop = asyncio.get_event_loop()
+            parsed = await loop.run_in_executor(None, parse_resume_with_llm, text)
+        except Exception as e:
+            return {"filename": file.filename, "status": "failed", "error": f"AI parsing failed: {str(e)}"}
+
+        if "error" in parsed:
+            return {"filename": file.filename, "status": "failed", "error": parsed["error"]}
+
+        return {"filename": file.filename, "status": "success", "parsed_resume": parsed}
+
+
+@router.post("/upload-resumes-bulk")
+async def upload_resumes_bulk(files: list[UploadFile] = File(...)):
+    """Upload and parse multiple resumes at once.
+    Each resume is processed independently — if one fails, the others still succeed."""
+
+    if len(files) == 0:
+        raise HTTPException(status_code=422, detail="No files provided.")
+
+    if len(files) > 50:
+        raise HTTPException(status_code=422, detail="Maximum 50 resumes per batch.")
+
+    results = await asyncio.gather(*[_process_single_resume(f) for f in files])
+
+    success_count = sum(1 for r in results if r["status"] == "success")
+    failed_count = len(results) - success_count
+
+    return {
+        "total": len(results),
+        "success_count": success_count,
+        "failed_count": failed_count,
+        "results": results,
+    }

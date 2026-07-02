@@ -17,11 +17,13 @@ export const getAllScreenings = async (
   page = 1,
   limit = CANDIDATES_PER_PAGE,
   verdict?: string,
-  search?: string   
+  search?: string,
+  sortBy?: string,
 ) => {
   const params: Record<string, string | number> = { page, limit };
   if (verdict) params.verdict = verdict;
-  if (search) params.search = search;   
+  if (search) params.search = search;
+  if (sortBy) params.sortBy = sortBy;
   const res = await axiosInstance.get("/screenings", { params });
   return res.data;
 };

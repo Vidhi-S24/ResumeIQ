@@ -1,14 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CANDIDATES_PER_PAGE } from '../constants';
 import {
-  Users,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  Trash2,
-  Loader2,
+  Users, Search, ChevronLeft, ChevronRight,
+  Trash2, Loader2, SlidersHorizontal, Check,
 } from 'lucide-react';
 
 import { getAllScreenings, deleteScreening } from '../api/screeningApi';
@@ -23,64 +19,69 @@ interface Screening {
   created_at: string;
 }
 
+const SORT_OPTIONS = [
+  {
+    label: "Highest Score",
+    sortBy: "score",
+  },
+  {
+    label: "Most Matched Skills",
+    sortBy: "matched_skills",
+  },
+];
+
 export default function CandidatesPage() {
   const navigate = useNavigate();
 
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [candidates, setCandidates] = useState<Screening[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchInput, setSearchInput] = useState('');
+  const [currentPage, setCurrentPage] = useState(() =>
+    Number(localStorage.getItem('candidatePage')) || 1
+  );
 
+  // Sort state — default: newest first
+  const [sortBy, setSortBy] = useState('created_at');
+  // const [sortOrder, setSortOrder] = useState('desc');
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const filterPanelRef = useRef<HTMLDivElement>(null);
+
+  // Delete state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [candidateToDelete, setCandidateToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const [currentPage, setCurrentPage] = useState(() => {
-    return Number(localStorage.getItem('candidatePage')) || 1;
-  });
-
   const avatarColors = [
-    '#16b1a4',
-    '#8299ca',
-    '#7C3AED',
-    '#c75387',
-    '#db7741',
-    '#32aa84',
-    '#47acc5',
-    '#9491c9',
-    '#a7c77a',
-    '#b894da',
-    '#cf6940',
-    '#af5b7e',
+    '#16b1a4', '#8299ca', '#7C3AED', '#c75387',
+    '#db7741', '#32aa84', '#47acc5', '#9491c9',
+    '#a7c77a', '#b894da', '#cf6940', '#af5b7e',
   ];
 
   const getAvatarColor = (text: string) => {
     let hash = 0;
-
     for (let i = 0; i < text.length; i++) {
       hash = text.charCodeAt(i) + ((hash << 5) - hash);
     }
-
     return avatarColors[Math.abs(hash) % avatarColors.length];
   };
 
+  // Debounce search — 400ms after user stops typing
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(searchInput);
-    }, 2000);
-
+    const timer = setTimeout(() => setSearch(searchInput), 2500);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
+  // Fetch whenever page, search, or sort changes
   useEffect(() => {
     const fetchScreenings = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const data = await getAllScreenings(currentPage, CANDIDATES_PER_PAGE, undefined, search);
+        const data = await getAllScreenings(currentPage, CANDIDATES_PER_PAGE, undefined, search, sortBy);
         setCandidates(data.screenings);
         setTotalCount(data.total);
       } catch {
@@ -91,30 +92,36 @@ export default function CandidatesPage() {
       }
     };
     fetchScreenings();
-  }, [currentPage, search]);
+  }, [currentPage, search, sortBy]);
 
+  // Reset to page 1 on any filter/search change
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [search, sortBy]);
 
+  // Persist page
   useEffect(() => {
     localStorage.setItem('candidatePage', String(currentPage));
   }, [currentPage]);
 
+  // Close filter panel when clicking outside it
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (filterPanelRef.current && !filterPanelRef.current.contains(e.target as Node)) {
+        setShowFilterPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleDelete = async () => {
     if (!candidateToDelete) return;
-
     try {
       setIsDeleting(true);
-
       await deleteScreening(candidateToDelete);
-
-      setCandidates((prev) =>
-        prev.filter((c) => c.id !== candidateToDelete)
-      );
-
+      setCandidates((prev) => prev.filter((c) => c.id !== candidateToDelete));
       setTotalCount((prev) => prev - 1);
-
       setShowDeleteModal(false);
       setCandidateToDelete(null);
     } catch {
@@ -141,6 +148,12 @@ export default function CandidatesPage() {
   const formatDate = (isoString: string) =>
     new Date(isoString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
+  // The label of the currently active sort option
+  const activeSortLabel =
+    SORT_OPTIONS.find(
+      (o) => o.sortBy === sortBy
+    )?.label || "Newest First";
+
   if (isInitialLoading) {
     return (
       <div className="candidates-page">
@@ -162,6 +175,7 @@ export default function CandidatesPage() {
 
   return (
     <div className="candidates-page">
+      {/* HEADER */}
       <div className="candidates-header">
         <div>
           <div className="candidates-title-row">
@@ -173,25 +187,80 @@ export default function CandidatesPage() {
         <div className="candidate-count">{totalCount} Candidates</div>
       </div>
 
-      <div className="search-container">
-        <Search size={18} />
-        <input
-          type="text"
-          placeholder="Search candidates..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-        />
+      {/* SEARCH + FILTER ROW */}
+      <div className="search-filter-row">
+        <div className="search-container">
+          <Search size={18} />
+          <input
+            type="text"
+            placeholder="Search candidates..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+        </div>
+
+        {/* FILTER ICON + DROPDOWN PANEL */}
+        <div className="filter-wrapper" ref={filterPanelRef}>
+          <button
+            className={`filter-icon-btn ${showFilterPanel || sortBy !== 'created_at' ? 'active' : ''}`}
+            onClick={() => setShowFilterPanel((v) => !v)}
+            title="Sort candidates"
+          >
+            <SlidersHorizontal size={17} />
+          </button>
+
+          <AnimatePresence>
+            {showFilterPanel && (
+              <motion.div
+                className="filter-panel"
+                initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                transition={{ duration: 0.15 }}
+              >
+                <p className="filter-panel-title">Sort by</p>
+                {SORT_OPTIONS.map((option) => {
+                  const isActive = option.sortBy === sortBy;
+                  return (
+                    <button
+                      key={`${option.sortBy}`}
+                      className={`filter-option ${isActive ? 'selected' : ''}`}
+                      onClick={() => {
+                        setSortBy(option.sortBy);
+                        setShowFilterPanel(false);
+                      }}
+                    >
+                      <span>{option.label}</span>
+                      {isActive && <Check size={14} />}
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Show the active sort label so user knows what's applied */}
+        {(sortBy !== 'created_at') && (
+          <span className="active-sort-label">
+            Sorted by: {activeSortLabel}
+            <button
+              className="clear-sort-btn"
+              onClick={() => { setSortBy('created_at'); }}
+            >
+              ✕
+            </button>
+          </span>
+        )}
       </div>
 
+      {/* CANDIDATES LIST */}
       {isLoading ? (
         <div className="flex items-center justify-center" style={{ padding: '2rem' }}>
           <Loader2 className="animate-spin" size={20} />
-          <span style={{ marginLeft: '0.5rem' }}>Searching...</span>
+          <span style={{ marginLeft: '0.5rem' }}>Loading...</span>
         </div>
-      ) : error ? (
-        <p style={{ color: '#ef4444', padding: '1rem' }}>{error}</p>
       ) : (
-
         <div className="candidate-list">
           {candidates.map((candidate, index) => (
             <motion.div
@@ -205,14 +274,9 @@ export default function CandidatesPage() {
                 <div className="candidate-info">
                   <div
                     className="candidate-avatar"
-                    style={{
-                      backgroundColor: getAvatarColor(candidate.candidate_name),
-                    }}
+                    style={{ backgroundColor: getAvatarColor(candidate.candidate_name) }}
                   >
-                    {candidate.candidate_name
-                      .split(' ')
-                      .map((n) => n[0])
-                      .join('')}
+                    {candidate.candidate_name.split(' ').map((n) => n[0]).join('')}
                   </div>
                   <h3>{candidate.candidate_name}</h3>
                 </div>
@@ -221,10 +285,7 @@ export default function CandidatesPage() {
                   <div className="candidate-score">{candidate.overall_score}%</div>
                   <button
                     className="delete-btn"
-                    onClick={() => {
-                      setCandidateToDelete(candidate.id);
-                      setShowDeleteModal(true);
-                    }}
+                    onClick={() => { setCandidateToDelete(candidate.id); setShowDeleteModal(true); }}
                     title="Delete candidate"
                   >
                     <Trash2 size={16} />
@@ -236,27 +297,28 @@ export default function CandidatesPage() {
                 <p className="candidate-role">{candidate.job_description?.job_title || 'No title specified'}</p>
                 <p className="candidate-screened">Screened: {formatDate(candidate.created_at)}</p>
               </div>
+
               <div className="verdict-report">
                 <div className="candidate-verdict">
                   <span className={`candidate-status ${getStatusClass(candidate.verdict)}`}>
                     {formatVerdict(candidate.verdict)}
                   </span>
                 </div>
-
                 <button className="view-report-btn" onClick={() => navigate(`/candidate/${candidate.id}`)}>
                   View Report
-                </button></div>
+                </button>
+              </div>
             </motion.div>
           ))}
         </div>
       )}
 
+      {/* PAGINATION */}
       {totalPages > 1 && (
         <div className="pagination">
           <button disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>
             <ChevronLeft size={16} />
           </button>
-
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
             <button
               key={page}
@@ -266,51 +328,28 @@ export default function CandidatesPage() {
               {page}
             </button>
           ))}
-
           <button disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => p + 1)}>
             <ChevronRight size={16} />
           </button>
         </div>
       )}
 
+      {/* DELETE MODAL */}
       {showDeleteModal && (
         <div className="modal-overlay">
           <div className="delete-modal">
             <h3>Are you sure you want to delete this candidate?</h3>
-
-            <p>
-              This action cannot be undone. The candidate report will be permanently
-              removed.
-            </p>
-
+            <p>This action cannot be undone. The candidate report will be permanently removed.</p>
             <div className="modal-actions">
               <button
                 className="cancel-btn"
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setCandidateToDelete(null);
-                }}
+                onClick={() => { setShowDeleteModal(false); setCandidateToDelete(null); }}
                 disabled={isDeleting}
               >
                 Cancel
               </button>
-
-              <button
-                className="confirm-delete-btn"
-                onClick={handleDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 size={16} />
-                    Delete
-                  </>
-                )}
+              <button className="confirm-delete-btn" onClick={handleDelete} disabled={isDeleting}>
+                {isDeleting ? <><Loader2 size={16} className="animate-spin" /> Deleting...</> : <><Trash2 size={16} /> Delete</>}
               </button>
             </div>
           </div>
