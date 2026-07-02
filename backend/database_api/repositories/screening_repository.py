@@ -72,8 +72,6 @@ async def get_screenings(
     )
 
     return [doc async for doc in cursor]
-    # cursor = candidate_screenings_collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
-    # return [doc async for doc in cursor]
 
 
 async def count_screenings(screened_by: str, verdict: str = None, search: str = None) -> int:

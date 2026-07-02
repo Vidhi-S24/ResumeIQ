@@ -53,7 +53,7 @@ class ScreeningResponse(BaseModel):
 class BulkAnalyzeRequest(BaseModel):
     jd_text: str
     job_title: Optional[str] = None
-    parsed_resumes: list[dict]   # list of parsed_resume objects from bulk upload
+    parsed_resumes: list[dict]   
 
 
 class RankedScreeningResult(BaseModel):
