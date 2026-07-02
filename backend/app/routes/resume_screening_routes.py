@@ -43,10 +43,10 @@ async def upload_resume(file: UploadFile = File(...)):
         loop = asyncio.get_event_loop()
         parsed = await loop.run_in_executor(None, parse_resume_with_llm, text)
     except ConnectionError as e:
-        print(f"❌ Ollama not running: {e}")
-        raise HTTPException(status_code=503, detail="Ollama is not running. Start Ollama and try again.")
+        print(f"❌ Groq not running: {e}")
+        raise HTTPException(status_code=503, detail="Groq is not running. Start Groq and try again.")
     except TimeoutError as e:
-        print(f"❌ Ollama timeout: {e}")
+        print(f"❌ Groq timeout: {e}")
         raise HTTPException(status_code=504, detail="Model took too long. Try again.")
     except Exception as e:
         print(f"❌ LLM error: {e}")

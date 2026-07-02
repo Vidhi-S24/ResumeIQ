@@ -105,6 +105,40 @@ async def recent_screenings(current_user=Depends(get_current_user)):
     docs = await get_recent_screenings(screened_by=screened_by, limit=5)
     return {"screenings": [_serialize_screening(doc) for doc in docs]}
 
+@router.post("/analyze-bulk")
+async def analyze_bulk(
+    payload: BulkAnalyzeRequest,
+    current_user=Depends(get_current_user)
+):
+    """Match multiple resumes against ONE job description, save all results,
+    and return them ranked by overall_score — highest first."""
+
+    if len(payload.parsed_resumes) == 0:
+        raise HTTPException(status_code=422, detail="No resumes provided.")
+
+    screened_by = str(current_user["_id"])
+
+    results = await asyncio.gather(*[
+        _match_and_save_one(resume, payload.jd_text, payload.job_title, screened_by)
+        for resume in payload.parsed_resumes
+    ])
+
+    successful = [r for r in results if r["status"] == "success"]
+    failed = [r for r in results if r["status"] == "failed"]
+
+    ranked = sorted(successful, key=lambda r: r["overall_score"], reverse=True)
+
+    for i, result in enumerate(ranked):
+        result["rank"] = i + 1
+
+    return {
+        "total_submitted": len(payload.parsed_resumes),
+        "success_count": len(successful),
+        "failed_count": len(failed),
+        "ranked_results": ranked,
+        "failed_results": failed,
+    }
+
 @router.get("/{screening_id}")
 async def get_one_screening(screening_id: str, current_user=Depends(get_current_user)):
     screened_by = str(current_user["_id"])
@@ -176,38 +210,3 @@ async def _match_and_save_one(parsed_resume: dict, jd_text: str, job_title: str,
                 "status": "failed",
                 "error": str(e)
             }
-
-
-@router.post("/analyze-bulk")
-async def analyze_bulk(
-    payload: BulkAnalyzeRequest,
-    current_user=Depends(get_current_user)
-):
-    """Match multiple resumes against ONE job description, save all results,
-    and return them ranked by overall_score — highest first."""
-
-    if len(payload.parsed_resumes) == 0:
-        raise HTTPException(status_code=422, detail="No resumes provided.")
-
-    screened_by = str(current_user["_id"])
-
-    results = await asyncio.gather(*[
-        _match_and_save_one(resume, payload.jd_text, payload.job_title, screened_by)
-        for resume in payload.parsed_resumes
-    ])
-
-    successful = [r for r in results if r["status"] == "success"]
-    failed = [r for r in results if r["status"] == "failed"]
-
-    ranked = sorted(successful, key=lambda r: r["overall_score"], reverse=True)
-
-    for i, result in enumerate(ranked):
-        result["rank"] = i + 1
-
-    return {
-        "total_submitted": len(payload.parsed_resumes),
-        "success_count": len(successful),
-        "failed_count": len(failed),
-        "ranked_results": ranked,
-        "failed_results": failed,
-    }

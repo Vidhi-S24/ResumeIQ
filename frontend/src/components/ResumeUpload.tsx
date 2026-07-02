@@ -88,7 +88,7 @@ export default function ResumeUpload({ onFileReady }: ResumeUploadProps) {
         } else if (error.response.status === 422) {
           errorMessage = 'Invalid file format sent to server.';
         } else if (error.response.status === 503) {
-          errorMessage = 'Ollama is not running. Start Ollama and try again.';
+          errorMessage = 'Groq is not running. Start Ollama and try again.';
         } else {
           errorMessage = `Server error: ${error.response.status}`;
         }
