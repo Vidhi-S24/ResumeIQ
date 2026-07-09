@@ -2,10 +2,10 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isAxiosError } from 'axios';
 import { analyzeAndSaveScreening } from '../api/screeningApi';
-import { uploadResumesBulk, analyzeResumesBulk, type RankedResult } from '../api/bulkScreeningApi';
+import { uploadResumesBulk, analyzeResumesBulk, type BulkCandidateResult } from '../api/bulkScreeningApi';
 import {
     FileSearch, Sparkles, Loader2, BrainCircuit, UploadCloud,
-    X, AlertTriangle, FileStack, User,
+    X, FileStack, User,
 } from 'lucide-react';
 import ResumeUpload from '../components/ResumeUpload';
 import AnalysisResult, { type AnalysisData } from '../components/AnalysisResult';
@@ -61,11 +61,14 @@ export default function ScreeningPage() {
     const [bulkJobTitle, setBulkJobTitle] = useState('');
     const [bulkJdText, setBulkJdText] = useState('');
     const [bulkStage, setBulkStage] = useState<BulkStage>('idle');
-    const [rankedResults, setRankedResults] = useState<RankedResult[]>([]);
+    // const [rankedResults, setRankedResults] = useState<RankedResult[]>([]);
+    const [bulkResults, setBulkResults] = useState<BulkCandidateResult[]>([]);
     const [failedResults, setFailedResults] = useState<{ candidate_name: string; error: string }[]>([]);
+    const [showBulkModal, setShowBulkModal] = useState(false);
+    const [currentCandidateIndex, setCurrentCandidateIndex] = useState(0);
     const [bulkError, setBulkError] = useState<string | null>(null);
     const bulkInputRef = useRef<HTMLInputElement>(null);
-    const allResumesUploaded = bulkFiles.length >= 1;
+    // const allResumesUploaded = bulkFiles.length >= 1;
     const canAnalyze = uploadedFile !== null && jobDescription.trim().length > 20 && !isAnalyzing;
     const canSubmitBulk = bulkFiles.length > 0 && bulkJdText.trim().length >= 20 && bulkStage === 'idle';
 
@@ -165,10 +168,16 @@ export default function ScreeningPage() {
             }
 
             setBulkStage('analyzing');
-            const analyzeData = await analyzeResumesBulk(bulkJdText, bulkJobTitle, successfulResumes);
-            setRankedResults(analyzeData.ranked_results);
-            setFailedResults(analyzeData.failed_results);
-            setBulkStage('done');
+            const analyzeData = await analyzeResumesBulk(
+                bulkJdText,
+                bulkJobTitle,
+                successfulResumes
+            );
+            setBulkResults(analyzeData.screened_candidates ?? []);
+            setFailedResults(analyzeData.unscreened_candidates ?? []);
+            setCurrentCandidateIndex(0);
+            setShowBulkModal(true);
+            setBulkStage("done");
         } catch (error: unknown) {
             let msg = 'Something went wrong. Please try again.';
             if (isAxiosError(error) && error.response) {
@@ -181,16 +190,50 @@ export default function ScreeningPage() {
 
     const handleBulkReset = () => {
         setBulkFiles([]);
-        setBulkJobTitle('');
-        setBulkJdText('');
-        setBulkStage('idle');
-        setRankedResults([]);
+        setBulkJobTitle("");
+        setBulkJdText("");
+        setBulkStage("idle");
+        setBulkResults([]);
         setFailedResults([]);
+        setCurrentCandidateIndex(0);
+        setShowBulkModal(false);
         setBulkError(null);
     };
 
-    const verdictColor = (verdict: string) =>
-        verdict === 'QUALIFIED' ? '#0f766e' : verdict === 'PARTIALLY_QUALIFIED' ? '#d97706' : '#dc2626';
+    const currentCandidate =
+        bulkResults.length > 0
+            ? bulkResults[currentCandidateIndex]
+            : null;
+    const currentAnalysis: AnalysisData | null =
+        currentCandidate
+            ? {
+                overallScore: currentCandidate.overall_score,
+                matchLevel:
+                    currentCandidate.overall_score >= 80
+                        ? "Excellent"
+                        : currentCandidate.overall_score >= 60
+                            ? "Good"
+                            : currentCandidate.overall_score >= 40
+                                ? "Fair"
+                                : "Poor",
+                verdict: currentCandidate.verdict,
+                summary: currentCandidate.ai_review,
+                strengths: currentCandidate.strengths ?? [],
+                gaps: currentCandidate.gaps ?? [],
+                recommendation: currentCandidate.ai_recommendation,
+                skills: [
+                    ...(currentCandidate.matched_skills ?? []).map((s: string) => ({
+                        name: s,
+                        matched: true,
+                    })),
+                    ...(currentCandidate.missing_skills ?? []).map((s: string) => ({
+                        name: s,
+                        matched: false,
+                    })),
+                ],
+                dimensionScores: currentCandidate.dimension_scores,
+            }
+            : null;
 
     return (
         <motion.div
@@ -320,10 +363,17 @@ export default function ScreeningPage() {
                                     exit={{ scale: 0.95, opacity: 0 }}
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <button className="analysis-modal-close" onClick={() => setShowAnalysisModal(false)}>
+                                    <button
+                                        className="analysis-modal-close"
+                                        onClick={() => setShowAnalysisModal(false)}
+                                    >
                                         ✕
                                     </button>
-                                    <AnalysisResult isAnalyzing={false} result={result} />
+
+                                    <AnalysisResult
+                                        isAnalyzing={false}
+                                        result={result}
+                                    />
                                 </motion.div>
                             </motion.div>
                         )}
@@ -426,28 +476,90 @@ export default function ScreeningPage() {
                     )}
 
                     {/* ───────── RANKING RESULTS TABLE ───────── */}
-                    <AnimatePresence>
-                        {bulkStage === 'done' && (
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bulk-results">
-                                <div className="bulk-results-header">
-                                    <button className="bulk-reset-btn" onClick={handleBulkReset}>Start New Batch</button>
-                                </div>
-                                {failedResults.length > 0 && (
-                                    <div className="bulk-failed-section">
-                                        <AlertTriangle size={16} />
-                                        <span>{failedResults.length} resume(s) could not be screened:</span>
-                                        <ul>
-                                            {failedResults.map((f, i) => (
-                                                <li key={i}>{f.candidate_name} — {f.error}</li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
                 </>
             )}
+
+            <AnimatePresence>
+                {showBulkModal && currentAnalysis && (
+                    <motion.div
+                        className="analysis-modal-overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setShowBulkModal(false)}
+                    >
+                        <motion.div
+                            className="analysis-modal"
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <button
+                                className="analysis-modal-close"
+                                onClick={() => setShowBulkModal(false)}
+                            >
+                                ✕
+                            </button>
+                            <AnalysisResult
+                                isAnalyzing={false}
+                                result={currentAnalysis}
+                            />
+
+                            <div className="bulk-navigation">
+                                <button
+                                    disabled={currentCandidateIndex === 0}
+                                    onClick={() =>
+                                        setCurrentCandidateIndex(i => i - 1)
+                                    }
+                                >
+                                    ← Previous
+                                </button>
+
+                                <button
+                                    disabled={
+                                        currentCandidateIndex >= bulkResults.length - 1
+                                    }
+                                    onClick={() =>
+                                        setCurrentCandidateIndex(i => i + 1)
+                                    }
+                                >
+                                    Next →
+                                </button>
+                            </div>
+                            <hr style={{ margin: "20px 0" }} />
+
+                            {/* Failed resumes */}
+                            {failedResults.length > 0 && (
+                                <div className="bulk-failed-section">
+                                    <h3>Resumes Not Screened</h3>
+                                    {failedResults.map((resume) => (
+                                        <div
+                                            key={resume.candidate_name}
+                                            style={{ marginBottom: 10 }}
+                                        >
+                                            <strong>{resume.candidate_name}</strong>
+                                            <br />
+                                            <span>{resume.error}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Reset */}
+                            <button
+                                className="bulk-reset-btn"
+                                onClick={() => {
+                                    handleBulkReset();
+                                    setShowBulkModal(false);
+                                }}
+                            >
+                                Start New Batch
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 }

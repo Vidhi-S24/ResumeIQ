@@ -25,23 +25,41 @@ export const uploadResumesBulk = async (files: File[]): Promise<BulkUploadRespon
   return res.data;
 };
 
-export interface RankedResult {
-  rank: number;
-  id: string;
-  candidate_name: string;
-  verdict: string;
-  overall_score: number;
-  matched_skills: string[];
-  missing_skills: string[];
-  ai_recommendation: string;
-}
-
 export interface BulkAnalyzeResponse {
   total_submitted: number;
   success_count: number;
   failed_count: number;
-  ranked_results: RankedResult[];
-  failed_results: { candidate_name: string; status: string; error: string }[];
+  screened_candidates: BulkCandidateResult[];
+  unscreened_candidates: {
+    candidate_name: string;
+    status: string;
+    error: string;
+  }[];
+}
+
+export interface BulkCandidateResult {
+  id: string;
+  candidate_name: string;
+
+  overall_score: number;
+
+  verdict: "QUALIFIED" | "PARTIALLY_QUALIFIED" | "NOT_QUALIFIED";
+
+  ai_review: string;
+  ai_recommendation: string;
+
+  matched_skills: string[];
+  missing_skills: string[];
+
+  strengths: string[];
+  gaps: string[];
+
+  dimension_scores: {
+    skills: number;
+    experience: number;
+    education: number;
+    domain_relevance: number;
+  } | null;
 }
 
 export const analyzeResumesBulk = async (

@@ -126,17 +126,12 @@ async def analyze_bulk(
     successful = [r for r in results if r["status"] == "success"]
     failed = [r for r in results if r["status"] == "failed"]
 
-    ranked = sorted(successful, key=lambda r: r["overall_score"], reverse=True)
-
-    for i, result in enumerate(ranked):
-        result["rank"] = i + 1
-
     return {
         "total_submitted": len(payload.parsed_resumes),
         "success_count": len(successful),
         "failed_count": len(failed),
-        "ranked_results": ranked,
-        "failed_results": failed,
+        "screened_candidates": successful,
+        "unscreened_candidates": failed,
     }
 
 @router.get("/{screening_id}")
@@ -192,17 +187,9 @@ async def _match_and_save_one(parsed_resume: dict, jd_text: str, job_title: str,
                 screened_by=screened_by,
                 job_title=job_title
             )
-
-            return {
-                "status": "success",
-                "id": saved["id"],
-                "candidate_name": saved["candidate_name"],
-                "verdict": saved["verdict"],
-                "overall_score": saved["overall_score"],
-                "matched_skills": saved["matched_skills"],
-                "missing_skills": saved["missing_skills"],
-                "ai_recommendation": saved["ai_recommendation"],
-            }
+            saved.pop("resume_embedding", None)
+            saved["status"] = "success"
+            return saved
 
         except Exception as e:
             return {
