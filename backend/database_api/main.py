@@ -4,6 +4,7 @@ from database_api.routes.screening_routes import router as screening_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 from database_api.database.mongodb import client
+from database_api.routes.assistant_routes import (router as assistant_router)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,6 +28,7 @@ app = FastAPI(
 
 app.include_router(auth_router)
 app.include_router(screening_router)
+app.include_router(assistant_router)
 
 app.add_middleware(
     CORSMiddleware,

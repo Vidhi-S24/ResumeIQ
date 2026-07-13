@@ -10,6 +10,9 @@ import {
 import { getAllScreenings, deleteScreening } from '../api/screeningApi';
 import '../styles/candidates.css';
 
+import AssistantButton from "../components/assistant/assistantButton";
+import AssistantDrawer from "../components/assistant/assistantDrawer";
+
 interface Screening {
   id: string;
   candidate_name: string;
@@ -54,6 +57,9 @@ export default function CandidatesPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [candidateToDelete, setCandidateToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  //assistant state
+  const [assistantOpen, setAssistantOpen] = useState(false);
 
   const avatarColors = [
     '#16b1a4', '#8299ca', '#7C3AED', '#c75387',
@@ -355,6 +361,13 @@ export default function CandidatesPage() {
           </div>
         </div>
       )}
+
+      <AssistantButton onClick={() => setAssistantOpen(true)} />
+      <AssistantDrawer
+        open={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+      />
+
     </div>
   );
 }

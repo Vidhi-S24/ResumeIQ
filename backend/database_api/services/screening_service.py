@@ -1,6 +1,6 @@
 from database_api.repositories.screening_repository import save_screening
 from app.services.groq_client_service import parse_jd_with_llm
-
+from database_api.services.embedding_service import generate_screening_embedding
 
 def _serialize_screening(doc: dict) -> dict:
     """Convert MongoDB's ObjectId and other fields into JSON-friendly types."""
@@ -44,6 +44,9 @@ async def build_and_save_screening(
         "ai_review": match_result.get("summary"),
         "ai_recommendation": match_result.get("recommendation"),
     }
+    print(f"Generating embedding for: {screening_doc['candidate_name']}")
+    screening_doc["resume_embedding"] = generate_screening_embedding(screening_doc)
+    print(f"✅ Embedding generated — {len(screening_doc['resume_embedding'])} dimensions")
 
     screening_id = await save_screening(screening_doc)
     screening_doc.pop("_id", None)
