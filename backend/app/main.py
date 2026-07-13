@@ -66,13 +66,14 @@ Features:
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        # Local Development
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        # Add your Vercel URL after deployment
-        # "https://resumeiq.vercel.app",
-    ],
+    # allow_origins=[
+    #     # Local Development
+    #     "http://localhost:5173",
+    #     "http://127.0.0.1:5173",
+    #     # Add your Vercel URL after deployment
+    #     # "https://resumeiq.vercel.app",
+    # ],
+    allow_origins=["*"],  # Allows all origins temporarily so Vercel can connect instantly
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
