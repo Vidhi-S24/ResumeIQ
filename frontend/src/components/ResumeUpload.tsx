@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import axios from "axios";
 import '../styles/upload.css';
+import axiosInstance from '../api/axiosInstance';
 
 interface UploadedFile {
   file: File;
@@ -34,13 +35,17 @@ export default function ResumeUpload({ onFileReady }: ResumeUploadProps) {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await axios.post(
-        "http://localhost:8000/upload-resume",
-        formData,
+      // const response = await axios.post(
+      //   "http://localhost:8000/upload-resume",
+      //   formData,
+      // );
+      const res = await axiosInstance.post(
+        "/upload-resume",
+        formData
       );
 
-      console.log("✅ Backend Response:", response.data);
-      return response.data;
+      console.log("✅ Backend Response:", res.data);
+      return res.data;
     } catch (error) {
       console.error("❌ Upload failed:", error);
       throw error;
@@ -68,7 +73,7 @@ export default function ResumeUpload({ onFileReady }: ResumeUploadProps) {
     try {
       // Flag 2: file received, model is now extracting
       setUploadedFile((prev) => prev ? { ...prev, status: 'processing' } : null);
-      await uploadToBackend(file);
+      // await uploadToBackend(file);
 
       // Flag 3: everything done
       const data = await uploadToBackend(file);
@@ -252,7 +257,7 @@ export default function ResumeUpload({ onFileReady }: ResumeUploadProps) {
                 <X />
               </button>
             )}
-            
+
             {(uploadedFile.status === 'uploading' || uploadedFile.status === 'processing') && (
               <Loader2 className="upload-file-loading animate-spin" />
             )}

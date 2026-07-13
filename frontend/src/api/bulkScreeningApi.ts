@@ -1,7 +1,4 @@
-import axios from "axios";
 import axiosInstance from "./axiosInstance";
-
-const CORE_API_URL = "http://localhost:8000";
 
 export interface BulkUploadResult {
   filename: string;
@@ -21,7 +18,10 @@ export const uploadResumesBulk = async (files: File[]): Promise<BulkUploadRespon
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
 
-  const res = await axios.post(`${CORE_API_URL}/upload-resumes-bulk`, formData);
+  const res = await axiosInstance.post(
+    "/upload-resumes-bulk",
+    formData
+);
   return res.data;
 };
 

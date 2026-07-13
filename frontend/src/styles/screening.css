@@ -309,7 +309,7 @@
 }
 
 .bulk-navigation button:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: #18ada1;
   transform: translateY(-2px);
 }
 
@@ -362,8 +362,8 @@
   padding: 14px;
   border: none;
   border-radius: 10px;
-  background:#0f766e;
-  color: white;
+  background: #18ada1;
+  color: black;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;

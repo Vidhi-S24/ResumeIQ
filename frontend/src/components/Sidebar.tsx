@@ -96,7 +96,6 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           ) : (
             <>
               <ChevronLeft />
-              <span className="sidebar-toggle-text">Collapse</span>
             </>
           )}
         </button>
