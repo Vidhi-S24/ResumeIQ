@@ -1,5 +1,6 @@
 import os
-from sentence_transformers import SentenceTransformer
+# from sentence_transformers import SentenceTransformer
+from database_api.services.embedding_service import generate_embedding
 from groq import Groq
 from dotenv import load_dotenv
 
@@ -71,13 +72,13 @@ Compare their skills, scores, strengths, and gaps.
 
 # MODELS
 
-print("Loading embedding model...")
+# print("Loading embedding model...")
 
-embedding_model = SentenceTransformer(
-    "BAAI/bge-small-en-v1.5"
-)
+# embedding_model = SentenceTransformer(
+#     "BAAI/bge-small-en-v1.5"
+# )
 
-print("Embedding model loaded")
+# print("Embedding model loaded")
 
 groq_client = Groq(
     api_key=os.getenv("GROQ_API_KEY")
@@ -218,9 +219,10 @@ async def semantic_search(
         screened_by,
         limit=10
 ):
-    vector = embedding_model.encode(
-        question
-    ).tolist()
+    # vector = embedding_model.encode(
+    #     question
+    # ).tolist()
+    vector = generate_embedding(question)
 
     pipeline=[
         {
