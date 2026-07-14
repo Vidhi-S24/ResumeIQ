@@ -7,9 +7,9 @@ import os
 import json
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-MODEL_NAME = "llama-3.3-70b-versatile"
+# MODEL_NAME = "llama-3.3-70b-versatile"
 # MODEL_NAME = "llama-3.1-8b-instant"
-# MODEL_NAME = "meta-llama/llama-4-scout-17b-16e-instruct"
+MODEL_NAME = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 PROMPTS_DIR = os.path.join(os.path.dirname(__file__), "prompts")
 
