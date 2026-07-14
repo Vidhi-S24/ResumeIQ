@@ -95,7 +95,7 @@ All screening results are securely stored in MongoDB Atlas and are isolated per 
 
 - Groq
 - llama-3.3-70b-versatile
-- Sentence Transformers
+- Google Gemini Embedding API
 - Retrieval-Augmented Generation (RAG)
 
 ## Database
@@ -108,7 +108,7 @@ All screening results are securely stored in MongoDB Atlas and are isolated per 
 # Architecture
 
 ```
-                React + Vite
+                               React + Vite
                       │
                       ▼
               FastAPI Backend
@@ -121,10 +121,10 @@ All screening results are securely stored in MongoDB Atlas and are isolated per 
         └─────────────────────────┘
              │             │
              ▼             ▼
-      MongoDB Atlas      Groq LLM
-             │
-             ▼
-     Vector Search (RAG)
+      MongoDB Atlas     Groq LLM
+             │             │
+             ▼             │
+   Vector Search      Gemini Embeddings
 ```
 
 ---
@@ -236,14 +236,16 @@ Use the Sign Up page to create your first recruiter account.
 
 ## Backend
 
-| Variable | Description |
-|----------|-------------|
-| MONGODB_URL | MongoDB Atlas connection string |
-| DATABASE_NAME | Database name |
-| JWT_SECRET_KEY | JWT secret |
-| JWT_ALGORITHM | HS256 |
-| ACCESS_TOKEN_EXPIRE_MINUTES | Session expiry |
-| GROQ_API_KEY | Groq API key |
+| Variable                    | Description                     |
+| --------------------------- | ------------------------------- |
+| MONGODB_URL                 | MongoDB Atlas connection string |
+| DATABASE_NAME               | Database name                   |
+| JWT_SECRET_KEY              | JWT secret                      |
+| JWT_ALGORITHM               | HS256                           |
+| ACCESS_TOKEN_EXPIRE_MINUTES | Session expiry                  |
+| GROQ_API_KEY                | Groq API Key                    |
+| GEMINI_API_KEY              | Google Gemini API Key           |
+
 
 ## Frontend
 
@@ -309,8 +311,10 @@ http://localhost:8000/docs
 
 # Notes
 
-- Uses Groq's free tier, which has request and token rate limits.
+- Uses Groq for resume parsing, screening, and AI-powered recommendations.
+- Uses Google's Gemini Embedding API to generate semantic embeddings for Retrieval-Augmented Generation (RAG).
 - MongoDB Atlas is used as both the primary database and vector search engine.
+- The AI Recruitment Assistant retrieves only candidates belonging to the authenticated recruiter using semantic vector search.
 - The AI Recruitment Assistant uses Retrieval-Augmented Generation (RAG) to answer recruiter questions using only the authenticated user's screened candidates.
 
 ---
