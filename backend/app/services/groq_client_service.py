@@ -215,6 +215,7 @@ def call_groq_model(prompt: str, max_tokens: int = 1500) -> str:
             reasoning_effort="low",  # remove this line if you switch to a non-reasoning model
         )
         choice = response.choices[0]
+        print(f"finish_reason={choice.finish_reason}, usage={response.usage}")
         if choice.finish_reason == "length":
             print("⚠️ Model output was cut off (max_tokens reached)")
         return (choice.message.content or "").strip()
